@@ -2485,16 +2485,31 @@ class TestBuildJobPromptSilentHint:
         result = _build_job_prompt(job)
         assert "[SILENT]" in result
 
-    def test_delivery_guidance_present(self):
-        """Cron hint tells agents their final response is auto-delivered."""
-        job = {"prompt": "Generate a report"}
+    def test_delivery_guidance_present_auto_deliver(self):
+        """Cron hint with auto-delivery tells agents not to send themselves."""
+        job = {"prompt": "Generate a report", "deliver": "origin"}
         result = _build_job_prompt(job)
         assert "do NOT use send_message" in result
         assert "automatically delivered" in result
 
+    def test_delivery_guidance_present_local_deliver(self):
+        """Cron hint with deliver=local tells agent to send output itself."""
+        job = {"prompt": "Generate a report", "deliver": "local"}
+        result = _build_job_prompt(job)
+        assert "hermes send" in result
+        assert "responsible for sending" in result
+        assert "do NOT use send_message" not in result
+
+    def test_delivery_guidance_default_is_local(self):
+        """Default (no deliver key) should be treated as local."""
+        job = {"prompt": "Generate a report"}
+        result = _build_job_prompt(job)
+        assert "hermes send" in result
+        assert "responsible for sending" in result
+
     def test_delivery_guidance_precedes_user_prompt(self):
         """System guidance appears before the user's prompt text."""
-        job = {"prompt": "My custom prompt"}
+        job = {"prompt": "My custom prompt", "deliver": "origin"}
         result = _build_job_prompt(job)
         system_pos = result.index("do NOT use send_message")
         prompt_pos = result.index("My custom prompt")
